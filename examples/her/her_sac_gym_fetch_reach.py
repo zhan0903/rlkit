@@ -5,15 +5,16 @@ from rlkit.data_management.obs_dict_replay_buffer import ObsDictRelabelingBuffer
 from rlkit.launchers.launcher_util import setup_logger
 from rlkit.samplers.data_collector import GoalConditionedPathCollector
 from rlkit.torch.her.her import HERTrainer
-from rlkit.torch.networks import FlattenMlp
+from rlkit.torch.networks import ConcatMlp
 from rlkit.torch.sac.policies import MakeDeterministic, TanhGaussianPolicy
 from rlkit.torch.sac.sac import SACTrainer
 from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm
 
 
 def experiment(variant):
-    eval_env = gym.make('FetchReach-v1')
-    expl_env = gym.make('FetchReach-v1')
+    # unwrap the TimeLimitEnv wrapper since we manually termiante after 50 steps
+    eval_env = gym.make('FetchReach-v1').env
+    expl_env = gym.make('FetchReach-v1').env
 
     observation_key = 'observation'
     desired_goal_key = 'desired_goal'
@@ -29,22 +30,22 @@ def experiment(variant):
     obs_dim = eval_env.observation_space.spaces['observation'].low.size
     action_dim = eval_env.action_space.low.size
     goal_dim = eval_env.observation_space.spaces['desired_goal'].low.size
-    qf1 = FlattenMlp(
+    qf1 = ConcatMlp(
         input_size=obs_dim + action_dim + goal_dim,
         output_size=1,
         **variant['qf_kwargs']
     )
-    qf2 = FlattenMlp(
+    qf2 = ConcatMlp(
         input_size=obs_dim + action_dim + goal_dim,
         output_size=1,
         **variant['qf_kwargs']
     )
-    target_qf1 = FlattenMlp(
+    target_qf1 = ConcatMlp(
         input_size=obs_dim + action_dim + goal_dim,
         output_size=1,
         **variant['qf_kwargs']
     )
-    target_qf2 = FlattenMlp(
+    target_qf2 = ConcatMlp(
         input_size=obs_dim + action_dim + goal_dim,
         output_size=1,
         **variant['qf_kwargs']
@@ -88,7 +89,6 @@ def experiment(variant):
     )
     algorithm.to(ptu.device)
     algorithm.train()
-
 
 
 if __name__ == "__main__":
